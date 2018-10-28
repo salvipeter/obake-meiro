@@ -156,6 +156,8 @@ public partial class MainWindow: Gtk.Window
 				cr.Paint();
 			}
 		}
+		((IDisposable)cr.GetTarget()).Dispose();                                      
+		((IDisposable)cr).Dispose();
 	}
 
 	void Go(Pos p) {
