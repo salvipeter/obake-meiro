@@ -49,8 +49,8 @@ public partial class MainWindow: Gtk.Window
 
 		var walls = new List<Wall>();
 
-		map[0,0] = Cell.Start;
-		AddWalls(walls, 0, 0);
+		map[current.x,current.y] = Cell.Start;
+		AddWalls(walls, current.x, current.y);
 
 		var rnd = new Random();
 		while (walls.Count != 0) {
@@ -63,7 +63,10 @@ public partial class MainWindow: Gtk.Window
 				AddWalls(walls, wall.p2.x, wall.p2.y);
 			}
 		}
-		map[width-1,height-1] = Cell.Goal;
+		if (current.x == 0)
+			map[width-1,height-1] = Cell.Goal;
+		else
+			map[0,0] = Cell.Goal;
 	}
 
 	bool IsInside(Pos p) {
@@ -116,7 +119,6 @@ public partial class MainWindow: Gtk.Window
 	void Start() {
 		GenerateMap();
 		PlaceMonsters();
-		current = new Pos(0, 0);
 	}
 
 	void OnExpose(object sender, ExposeEventArgs args) {
@@ -160,6 +162,7 @@ public partial class MainWindow: Gtk.Window
 		if (!IsInside(p))
 			return;
 		if (map[p.x,p.y] == Cell.Goal) {
+			current = p;
 			Start();
 		} else if (map[p.x,p.y] == Cell.Nothing || map[p.x,p.y] == Cell.Start) {
 			current = p;
@@ -203,6 +206,7 @@ public partial class MainWindow: Gtk.Window
 		mummy = new Gdk.Pixbuf(asm.GetManifestResourceStream("MummyImage")).ScaleSimple(size, size, Gdk.InterpType.Bilinear);
 
 		map = new Cell[width,height];
+		current = new Pos(0, 0);
 		Start();
 
 		SetDefaultSize((width + 2) * size, (height + 2) * size);
