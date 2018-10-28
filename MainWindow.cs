@@ -5,7 +5,7 @@ using Cairo;
 
 public partial class MainWindow: Gtk.Window
 {	
-	const int width = 21, height = 11, n_monsters = 10, size = 75;
+	int width = 21, height = 11, n_monsters = 10, size = 75;
 
 	enum Cell { Nothing, Wall, Start, Goal, Obake, Bat, Kasa, Mummy }
 	Cell[,] map;
@@ -193,8 +193,20 @@ public partial class MainWindow: Gtk.Window
 		}
 	}
 
-	public MainWindow() : base("Obake Meiro")
-	{
+	void ReadConfig() {
+		try {
+			var lines = System.IO.File.ReadAllLines("ObakeMeiro.cfg");
+			width      = Int32.Parse(lines[0].Split(' ')[0]);
+			height     = Int32.Parse(lines[1].Split(' ')[0]);
+			n_monsters = Int32.Parse(lines[2].Split(' ')[0]);
+			size       = Int32.Parse(lines[3].Split(' ')[0]);
+		} catch(Exception) {
+		}
+	}
+
+	public MainWindow() : base("Obake Meiro") {
+		ReadConfig();
+
 		var asm = System.Reflection.Assembly.GetExecutingAssembly();
 		player = new Gdk.Pixbuf(asm.GetManifestResourceStream("PlayerImage")).ScaleSimple(size, size, Gdk.InterpType.Bilinear);
 		wall = new Gdk.Pixbuf(asm.GetManifestResourceStream("WallImage")).ScaleSimple(size, size, Gdk.InterpType.Bilinear);
@@ -218,8 +230,7 @@ public partial class MainWindow: Gtk.Window
 		ShowAll();
 	}
 
-	protected void OnDeleteEvent (object sender, DeleteEventArgs a)
-	{
+	protected void OnDeleteEvent (object sender, DeleteEventArgs a) {
 		Application.Quit();
 		a.RetVal = true;
 	}
