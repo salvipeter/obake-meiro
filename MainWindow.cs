@@ -21,7 +21,7 @@ public partial class MainWindow: Gtk.Window
 		}
 	}
 
-	Pos current;
+	Pos current, margin;
 
 	struct Wall {
 		public Pos p1, p2;
@@ -116,9 +116,18 @@ public partial class MainWindow: Gtk.Window
 		}
 	}
 
+	void CorrectCursor() {
+		Pos offset;
+		GetPosition(out offset.x, out offset.y);
+		var x = offset.x + margin.x + (current.x + 1) * size + size/2;
+		var y = offset.y + margin.y + (current.y + 1) * size + size/2;
+		Display.WarpPointer(Screen, x, y);
+	}
+
 	void Start() {
 		GenerateMap();
 		PlaceMonsters();
+		CorrectCursor();
 	}
 
 	void OnExpose(object sender, ExposeEventArgs args) {
@@ -126,7 +135,7 @@ public partial class MainWindow: Gtk.Window
 		var cr = Gdk.CairoHelper.Create(area.GdkWindow);
 		for (int i = 0; i < width + 2; ++i) {
 			for (int j = 0; j < height + 2; ++j) {
-				int x = i * size, y = j * size;
+				int x = margin.x + i * size, y = margin.y + j * size;
 				if (i == 0 || i == width + 1 || j == 0 || j == height + 1 || map[i-1,j-1] == Cell.Wall)
 					Gdk.CairoHelper.SetSourcePixbuf(cr, wall, x, y);
 				else if (current.Equals(new Pos(i - 1, j - 1)))
@@ -195,6 +204,23 @@ public partial class MainWindow: Gtk.Window
 		}
 	}
 
+	void OnMotion(object o, Gtk.MotionNotifyEventArgs args) {
+		var x = margin.x + (current.x + 1) * size + size/2;
+		var y = margin.y + (current.y + 1) * size + size/2;
+
+		Pos cursor;
+		Gdk.ModifierType mask;
+		args.Event.Window.GetPointer(out cursor.x, out cursor.y, out mask);
+		if (cursor.x > x + size && cursor.y > y - size && cursor.y < y + size)
+			Go(new Pos(current.x + 1, current.y));
+		else if (cursor.x < x - size && cursor.y > y - size && cursor.y < y + size)
+			Go(new Pos(current.x - 1, current.y));
+		else if (cursor.y > y + size && cursor.x > x - size && cursor.x < x + size)
+			Go(new Pos(current.x, current.y + 1));
+		else if (cursor.y < y - size && cursor.x > x - size && cursor.x < x + size)
+			Go(new Pos(current.x, current.y - 1));
+	}
+
 	void ReadConfig() {
 		try {
 			var lines = System.IO.File.ReadAllLines("ObakeMeiro.cfg");
@@ -219,16 +245,23 @@ public partial class MainWindow: Gtk.Window
 		kasa = new Gdk.Pixbuf(asm.GetManifestResourceStream("KasaImage")).ScaleSimple(size, size, Gdk.InterpType.Bilinear);
 		mummy = new Gdk.Pixbuf(asm.GetManifestResourceStream("MummyImage")).ScaleSimple(size, size, Gdk.InterpType.Bilinear);
 
+		//SetDefaultSize((width + 2) * size, (height + 2) * size);
+		//margin.x = 0; margin.y = 0;
+		Fullscreen();
+		margin.x = (Screen.Width - (width + 2) * size) / 2;
+		margin.y = (Screen.Height - (height + 2) * size) / 2;
+
 		map = new Cell[width,height];
 		current = new Pos(0, 0);
 		Start();
 
-		SetDefaultSize((width + 2) * size, (height + 2) * size);
 		area = new DrawingArea();
+		area.AddEvents((int)Gdk.EventMask.PointerMotionMask);
 		area.ExposeEvent += OnExpose;
-		KeyPressEvent += OnKeyPress;
-		DeleteEvent += new DeleteEventHandler(OnDeleteEvent);
+		area.MotionNotifyEvent += OnMotion;
 		Add(area);
+		KeyPressEvent += OnKeyPress;
+		DeleteEvent += OnDeleteEvent;
 		ShowAll();
 	}
 
